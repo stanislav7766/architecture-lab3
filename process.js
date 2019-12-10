@@ -11,7 +11,9 @@ const getHash = (filePath, algorithm = 'md5') =>
     const md5Sum = crypto.createHash(algorithm);
     try {
       const rs = fs.ReadStream(filePath);
-      rs.on('data', data => md5Sum.update(data));
+      rs.on('data', data => {
+        md5Sum.update(data);
+      });
       rs.on('end', () => resolve(md5Sum.digest('hex')));
       rs.on('error', err => reject(err));
     } catch (err) {
@@ -39,7 +41,8 @@ const listDir = dirName =>
   });
 
 (async function main() {
-  if (process.argv.length <= 2) throw new Error('must be addition args');
+  if (process.argv.slice(2).length < 2)
+    throw new Error('must be addition args');
   const format = {
     txt: '.txt',
     res: '.res'
@@ -53,5 +56,7 @@ const listDir = dirName =>
   const writePromises = hashFiles.map((hash, i) =>
     writeFile(dirOutput + inputFiles[i] + format.res, hash)
   );
+  console.log(`Total number of processed files: ${writePromises.length}.`);
+
   await Promise.all(writePromises);
 })();
