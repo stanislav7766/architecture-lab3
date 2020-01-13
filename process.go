@@ -6,6 +6,7 @@ import (
 	"strings"
 	"os"
 	"encoding/hex"
+	"io"
 	"io/ioutil"
 	"crypto/md5"
 )
@@ -27,12 +28,44 @@ func ReadDir(dirName string) ([]string, error) {
 	return files, nil
  }
 
+ func convertStrtoByte(strings []string)([]byte){
+	var result = []byte{}
+
+	for _, el := range strings {
+		b := []byte(el)
+		for _, el1 := range b {
+			result = append(result,el1)
+		}
+	}
+	return result
+ }
+
+func readFileByChunks(bufferSize int, filePath string)([]byte, error){
+	var fileContent []string
+	buffer := make([]byte, bufferSize)
+	file, err := os.Open(filePath)
+	if err != nil {	return nil, err }
+	defer file.Close()
+
+	for {
+  	bytesRead, err := file.Read(buffer)
+		if err != nil {
+    	if err != io.EOF { 	return nil, err }
+   		break
+		}
+	fileContent = append(fileContent, string(buffer[:bytesRead]))
+	}
+	result := convertStrtoByte(fileContent)
+	return result,err
+}
+
 func getHashHelper(filePath string)(chan string){
 	r := make(chan string)
 	var MD5String string
+	const bufferSize = 1024
 	go func() {
 		defer close(r)
-		file, err := ioutil.ReadFile(filePath)
+		file,err := readFileByChunks(bufferSize,filePath)
 		if err != nil {exitWithErr("error hash file")}
 		sum := md5.Sum(file)
 		MD5String = hex.EncodeToString(sum[:])
